@@ -3,16 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : Singleton<GameManager>
 {
-    [SerializeField] private BlockController blockController;
-    [SerializeField] private PanelManager panelManager;
-    [SerializeField] private GameUIController gameUIController;
-
-    // 강사님과 다른 내 코드
-    [SerializeField] private TMP_Text tempText; // 테스트
+    [SerializeField] private GameObject settingsPanel;
+    [SerializeField] private GameObject confirmPanel;
+    
+    private BlockController blockController;
+    private GameUIController gameUIController;
+    private Canvas canvas;
     
     
     public enum PlayerType { None, A, B }
@@ -28,18 +29,42 @@ public class GameManager : Singleton<GameManager>
         Lose // 플레이어 패
     }
 
-
-    void Start()
+    public enum GameType
     {
-        // 게임 초기화
-        InitGame();
-        
+        SinglePlay,
+        MultiPlay
     }
     
-    /// <summary>
-    /// 게임 초기화 함수
-    /// </summary>
-    public void InitGame()
+    public void ChangeToGameScene(GameType gameType)
+    {
+        SceneManager.LoadScene("Game");
+    }
+
+    public void ChangeToMainScene()
+    {
+        SceneManager.LoadScene("Main");
+    }
+
+    public void OpenSettingsPanel()
+    {
+        if (canvas != null)
+        {
+           var settingsPanelObeject = Instantiate(settingsPanel, canvas.transform);
+           settingsPanelObeject.GetComponent<PanelController>().Show();
+        }
+    }
+
+    public void OpenConfirmPanel(string message, ConfirmPanelController.OnConfirmButtonClicked onConfirmButtonClicked)
+    {
+        if (canvas != null)
+        {
+            var confirmPanelObject = Instantiate(confirmPanel, canvas.transform);
+            confirmPanelObject.GetComponent<ConfirmPanelController>()
+                .Show(message, onConfirmButtonClicked);
+        }
+    }
+    
+    private void StartGame()
     {
         // board 초기화
         board = new PlayerType[3, 3];
@@ -50,14 +75,8 @@ public class GameManager : Singleton<GameManager>
         // 게임 UI 초기화
         gameUIController.SetUIMode(GameUIController.GameUIMode.Init);
         
-        // 게임 스타트
-        StartGame();
-    }
-
-    public void StartGame()
-    {
+        // 턴 시작
         SetTurn(TurnType.PlayerA);
-        panelManager.ShowPanel(PanelManager.PanelType.InGamePanel);
     }
 
     /// <summary>
@@ -67,6 +86,8 @@ public class GameManager : Singleton<GameManager>
     /// <param name="gameResult">Win, Lose, Draw</param>
     private void EndGame(GameResult gameResult)
     {
+        gameUIController.SetUIMode(GameUIController.GameUIMode.GameOver);
+        blockController.onBlockClickedDelegate = null;
         // TODO: 추후 구현!
         switch (gameResult)
         {
@@ -78,7 +99,7 @@ public class GameManager : Singleton<GameManager>
                 break;
         }
     }
-
+    
     /// <summary>
     /// board에 새로운 값을 할당하는 함수
     /// </summary>
@@ -88,6 +109,9 @@ public class GameManager : Singleton<GameManager>
     /// <returns>False 반환 시 할당 X, True는 할당이 완료됨</returns>
     private bool SetNewBoardValue(PlayerType playerType, int row, int col)
     {
+        if (board[row, col] != PlayerType.None)
+            return false;
+        
         if (playerType == PlayerType.A)
         {
             board[row, col] = playerType;
@@ -113,8 +137,6 @@ public class GameManager : Singleton<GameManager>
                 gameUIController.SetUIMode(GameUIController.GameUIMode.TurnA);
                 blockController.onBlockClickedDelegate = (row, col) =>
                 {
-                    // TODO: 1. board에 내용 반영
-                    // TODO: 2. 화면에 마커 표시
                     if (SetNewBoardValue(PlayerType.A, row, col))
                     {
                         var gameResult = CheckGameResult();
@@ -135,20 +157,25 @@ public class GameManager : Singleton<GameManager>
             
             case TurnType.PlayerB:
                 gameUIController.SetUIMode(GameUIController.GameUIMode.TurnB);
-                blockController.onBlockClickedDelegate = (row, col) =>
+                
+                // TODO: 계산된 row, col 값
+                var result = AIContoller.FindNextMove(board);
+                
+                if (SetNewBoardValue(PlayerType.B, result.row, result.col))
                 {
-                    if (SetNewBoardValue(PlayerType.B, row, col))
+                    var gameResult = CheckGameResult();
+                    if(gameResult == GameResult.None)
+                        SetTurn(TurnType.PlayerA);
+                    else
                     {
-                        var gameResult = CheckGameResult();
-                        if(gameResult == GameResult.None)
-                            SetTurn(TurnType.PlayerA);
-                        else
-                        {
-                            gameUIController.SetUIMode(GameUIController.GameUIMode.GameOver);
-                            EndGame(gameResult);
-                        }
+                        gameUIController.SetUIMode(GameUIController.GameUIMode.GameOver);
+                        EndGame(gameResult);
                     }
-                };
+                }
+                else
+                {
+                    
+                }
                 // TODO: AI에게 입력 받기
                 
                 break;
@@ -163,19 +190,16 @@ public class GameManager : Singleton<GameManager>
     {
         if (CheckGameWin(PlayerType.A))
         {
-            tempText.text = "Player1 Win";
             return GameResult.Win;
         }
 
         if (CheckGameWin(PlayerType.B))
         {
-            tempText.text = "Player2 Win";
             return GameResult.Lose;
         }
 
         if (IsAllBlocksPlaced())
         {
-            tempText.text = "Draw";
             return GameResult.Draw;
         }
         return GameResult.None;
@@ -240,5 +264,18 @@ public class GameManager : Singleton<GameManager>
         
         // 하나도 포함되지 않는다면 리턴 flase
         return false;
+    }
+
+    protected override void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "Game")
+        {
+            blockController = GameObject.FindObjectOfType<BlockController>();
+            gameUIController = GameObject.FindObjectOfType<GameUIController>();
+            
+            // 게임 시작
+            StartGame();
+        }
+        canvas = GameObject.FindObjectOfType<Canvas>();
     }
 }

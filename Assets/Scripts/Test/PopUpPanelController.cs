@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
-using Unity.VisualScripting; // DOT Ween 사용 시 선언
+using Unity.VisualScripting;
+using UnityEngine.SceneManagement; // DOT Ween 사용 시 선언
 
 [RequireComponent(typeof(CanvasGroup))]
 public class PopUpPanelController : Singleton<PopUpPanelController>
@@ -77,5 +78,10 @@ public class PopUpPanelController : Singleton<PopUpPanelController>
             gameObject.SetActive(false);
         }
 
+    }
+
+    protected override void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        
     }
 }

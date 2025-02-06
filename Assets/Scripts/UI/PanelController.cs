@@ -1,45 +1,47 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening; // DOT Ween
 
-[RequireComponent(typeof(RectTransform))]
+[RequireComponent(typeof(CanvasGroup))]
 public class PanelController : MonoBehaviour
 {
-    public bool isShow { get; private set; }
-
-    public delegate void OnHide();
-    private OnHide onHideDelegate;
+    [SerializeField] private RectTransform panelRectTransform;      // 팝업창
+    private CanvasGroup backgroundCanvasGroup;                      // 뒤에 배경
     
-    
-    private RectTransform rectTransform;
-    private Vector2 hideAnchorPosition;
-    
-    
+    public delegate void PanelControllerHideDelegate(); // 창이 닫히고 나면 넘어갈 수 있게 델리게이트를 선언
     
     private void Awake()
     {
-        rectTransform = GetComponent<RectTransform>();
-        hideAnchorPosition = rectTransform.anchoredPosition;
-        isShow = false;
+        backgroundCanvasGroup = GetComponent<CanvasGroup>();
     }
 
     /// <summary>
     /// Panel 표시 함수
     /// </summary>
-    public void Show(OnHide onHideDelegate)
+    public void Show()
     {
-        this.onHideDelegate = onHideDelegate;
-        rectTransform.anchoredPosition = Vector2.zero;
-        isShow = true;
+        backgroundCanvasGroup.alpha = 0;
+        panelRectTransform.localScale = Vector3.zero;
+        
+        backgroundCanvasGroup.DOFade(1, 0.2f).SetEase(Ease.Linear);
+        panelRectTransform.DOScale(1, 0.2f).SetEase(Ease.InOutBack);
     }
 
     /// <summary>
     /// Panel 숨기기 함수
     /// </summary>
-    public void Hide()
+    public void Hide(PanelControllerHideDelegate hideDelegate = null)
     {
-        rectTransform.anchoredPosition = hideAnchorPosition;
-        isShow = false;
-        onHideDelegate?.Invoke();
-    }       
+        backgroundCanvasGroup.alpha = 1;
+        panelRectTransform.localScale = Vector3.one;
+        
+        backgroundCanvasGroup.DOFade(0, 0.2f);
+        panelRectTransform.DOScale(0, 0.2f).OnComplete(() =>
+        {
+            hideDelegate?.Invoke();
+            Destroy(gameObject);
+        });
+        
+    }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
@@ -12,11 +13,12 @@ public class ConfirmPanelController : PanelController
     public delegate void OnConfirmButtonClicked();
     private OnConfirmButtonClicked onConfirmButtonClicked;
 
-    public void Show(string message, OnConfirmButtonClicked onConfirmButtonClicked, OnHide onHide)
+    // 오버라이드
+    public void Show(string message, OnConfirmButtonClicked onConfirmButtonClicked)
     {
         messageText.text = message;
         this.onConfirmButtonClicked = onConfirmButtonClicked;
-        base.Show(onHide); // base(부모) 
+        base.Show(); // base(부모) 
     }
 
     /// <summary>
@@ -24,8 +26,10 @@ public class ConfirmPanelController : PanelController
     /// </summary>
     public void OnClickConfirmButton()
     {
-        onConfirmButtonClicked?.Invoke();
-        Hide();
+        Hide(() =>
+        {
+            onConfirmButtonClicked?.Invoke();
+        });
     }
 
     

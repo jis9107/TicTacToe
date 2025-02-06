@@ -7,16 +7,16 @@ public class MainPanelController : MonoBehaviour
 {
     public void OnClickSinglePlayButton()
     {
-        SceneManager.LoadScene("Game");
+        GameManager.Instance.ChangeToGameScene(GameManager.GameType.SinglePlay);
     }
 
     public void OnClickMultiPlayButton()
     {
-        SceneManager.LoadScene("Game");
+        GameManager.Instance.ChangeToGameScene(GameManager.GameType.MultiPlay);
     }
 
     public void OnClickSettingsButton()
     {
-        
+        GameManager.Instance.OpenSettingsPanel();
     }
 }
